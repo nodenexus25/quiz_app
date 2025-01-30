@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamified Quiz</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: #ecf0f1;
+            padding: 20px;
+        }
+        .quiz-container {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            margin: auto;
+            animation: fadeIn 1s ease-in-out;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+        .option-btn {
+            display: block;
+            width: 100%;
+            margin: 10px auto;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            background: #3498db;
+            color: #fff;
+            transition: all 0.3s ease-in-out;
+        }
+        .option-btn:hover {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+        .option-btn:active {
+            background: #1f618d;
+        }
+        #next-btn {
+            padding: 12px 24px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            background: #27ae60;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: none;
+        }
+        #score-container, #timer-container {
+            font-size: 20px;
+            margin-top: 15px;
+            font-weight: bold;
+            transition: transform 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1>Gamified Quiz</h1>
+        <div id="question-container"></div>
+        <div id="options-container"></div>
+        <button id="next-btn">Next</button>
+        <div id="score-container">Score: 0</div>
+        <div id="timer-container"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://opentdb.com/api.php?amount=10&category=18&type=multiple';
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timer;
+
+        async function fetchQuizData() {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            questions = data.results;
+            displayQuestion();
+        }
+
+        fetchQuizData();
+
+        function displayQuestion() {
+            clearInterval(timer);
+            const questionContainer = document.getElementById('question-container');
+            const optionsContainer = document.getElementById('options-container');
+            const nextBtn = document.getElementById('next-btn');
+            const timerContainer = document.getElementById('timer-container');
+
+            if (currentQuestionIndex >= questions.length) {
+                questionContainer.innerHTML = `🎉 Quiz Completed! Final Score: ${score}`;
+                optionsContainer.innerHTML = '';
+                nextBtn.style.display = 'none';
+                return;
+            }
+
+            nextBtn.style.display = 'none';
+            const currentQuestion = questions[currentQuestionIndex];
+            questionContainer.innerHTML = `❓ ${currentQuestion.question}`;
+            optionsContainer.innerHTML = '';
+            const allOptions = [...currentQuestion.incorrect_answers, currentQuestion.correct_answer].sort(() => Math.random() - 0.5);
+
+            allOptions.forEach(option => {
+                const button = document.createElement('button');
+                button.innerHTML = option;
+                button.classList.add('option-btn');
+                button.addEventListener('click', () => checkAnswer(button, option, currentQuestion.correct_answer));
+                optionsContainer.appendChild(button);
+            });
+
+            startTimer(15, timerContainer);
+        }
+
+        function startTimer(seconds, display) {
+            let timeLeft = seconds;
+            display.innerHTML = `⏳ Time Left: ${timeLeft}s`;
+            timer = setInterval(() => {
+                timeLeft--;
+                display.innerHTML = `⏳ Time Left: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    disableOptions();
+                    document.getElementById('next-btn').style.display = 'block';
+                }
+            }, 1000);
+        }
+
+        function checkAnswer(button, selected, correct) {
+            clearInterval(timer);
+            document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+            if (selected === correct) {
+                score += 10;
+                document.getElementById('score-container').innerText = `⭐ Score: ${score}`;
+                document.getElementById('score-container').style.transform = 'scale(1.2)';
+                setTimeout(() => document.getElementById('score-container').style.transform = 'scale(1)', 300);
+            }
+            button.style.background = selected === correct ? '#27ae60' : '#e74c3c';
+            document.getElementById('next-btn').style.display = 'block';
+        }
+
+        function disableOptions() {
+            document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+
+        document.getElementById('next-btn').addEventListener('click', nextQuestion);
+    </script>
+</body>
+</html>
